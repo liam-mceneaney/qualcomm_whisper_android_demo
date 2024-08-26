@@ -44,16 +44,24 @@ public class Whisper {
         mWhisperEngine.setUpdateListener(mUpdateListener);
     }
 
-    public void loadModel(String modelPath, String vocabPath, boolean isMultilingual) {
-        try {
-            mWhisperEngine.initialize(modelPath, vocabPath, isMultilingual);
-
-            // Start thread for mic data transcription in realtime
-            startMicTranscriptionThread();
-        } catch (IOException e) {
-            Log.e(TAG, "Error...", e);
-        }
+//    public void loadModel(String modelPath, String vocabPath, boolean isMultilingual) {
+//        try {
+//            mWhisperEngine.initialize(modelPath, vocabPath, isMultilingual);
+//
+//            // Start thread for mic data transcription in realtime
+//            startMicTranscriptionThread();
+//        } catch (IOException e) {
+//            Log.e(TAG, "Error...", e);
+//        }
+//    }
+// Update this method to use the new engine
+public void loadModel(String encoderPath, String decoderPath, String vocabPath, boolean useMultilingual) {
+    try {
+        mWhisperEngine.initialize(encoderPath, decoderPath, vocabPath, useMultilingual);
+    } catch (IOException e) {
+        Log.e(TAG, "Error initializing WhisperEngineTwoModel", e);
     }
+}
 
     public void setAction(String action) {
         mAction = action;

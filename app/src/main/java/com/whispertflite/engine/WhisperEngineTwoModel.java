@@ -65,20 +65,15 @@ public class WhisperEngineTwoModel implements IWhisperEngine {
     }
 
     @Override
-    public boolean initialize(String modelPath, String vocabPath, boolean multilingual) throws IOException {
-        // Load model
-        String filesDir = new File(modelPath).getParent();
-        String encoderModelPath = new File(filesDir, WHISPER_ENCODER).getAbsolutePath();
-        String decoderModelPath = new File(filesDir, WHISPER_DECODER_LANGUAGE).getAbsolutePath();
-
+    public boolean initialize(String encoderPath, String decoderPath, String vocabPath, boolean multilingual) throws IOException {
         try {
             // Load encoder model
-            Pair<MappedByteBuffer, String> encoderModelPair = TFLiteHelpers.loadModelFile(mContext.getAssets(), WHISPER_ENCODER);
+            Pair<MappedByteBuffer, String> encoderModelPair = TFLiteHelpers.loadModelFile(mContext.getAssets(), new File(encoderPath).getName());
             MappedByteBuffer encoderModel = encoderModelPair.first;
             String encoderModelIdentifier = encoderModelPair.second;
 
             // Load decoder model
-            Pair<MappedByteBuffer, String> decoderModelPair = TFLiteHelpers.loadModelFile(mContext.getAssets(), WHISPER_DECODER_LANGUAGE);
+            Pair<MappedByteBuffer, String> decoderModelPair = TFLiteHelpers.loadModelFile(mContext.getAssets(), new File(decoderPath).getName());
             MappedByteBuffer decoderModel = decoderModelPair.first;
             String decoderModelIdentifier = decoderModelPair.second;
 
@@ -121,11 +116,10 @@ public class WhisperEngineTwoModel implements IWhisperEngine {
         Log.d(TAG, "Models are loaded and optimized.");
 
         // Load filters and vocab
-        String multilingualVocabPath = new File(filesDir, WHISPER_VOCAB_MULTILINGUAL).getAbsolutePath();
-        boolean ret = mWhisperUtil.loadFiltersAndVocab(multilingual, multilingualVocabPath);
+        boolean ret = mWhisperUtil.loadFiltersAndVocab(multilingual, vocabPath);
         if (ret) {
             mIsInitialized = true;
-            Log.d(TAG, "Filters and Vocab are loaded..." + multilingualVocabPath);
+            Log.d(TAG, "Filters and Vocab are loaded..." + vocabPath);
         } else {
             mIsInitialized = false;
             Log.d(TAG, "Failed to load Filters and Vocab...");
@@ -133,7 +127,6 @@ public class WhisperEngineTwoModel implements IWhisperEngine {
 
         return mIsInitialized;
     }
-
 
     @Override
     public String transcribeFile(String wavePath) {
@@ -183,7 +176,7 @@ public class WhisperEngineTwoModel implements IWhisperEngine {
         // Load the TFLite model and allocate tensors for encoder
         mInterpreterEncoder.allocateTensors();
 
-        // Prepare encoder input and output buffers as TensorBuffers
+        // Prepare encoder input and output buffers
         Tensor inputTensor = mInterpreterEncoder.getInputTensor(0);
         TensorBuffer encoderInputBuffer = TensorBuffer.createFixedSize(inputTensor.shape(), inputTensor.dataType());
 
@@ -193,32 +186,22 @@ public class WhisperEngineTwoModel implements IWhisperEngine {
         // Set encoder input data in encoderInputBuffer
         encoderInputBuffer.loadArray(inputBuffer);
 
-        // Create the input and output maps for encoder
-        Map<String, Object> encoderInputsMap = new HashMap<>();
-        String[] encoderInputs = mInterpreterEncoder.getSignatureInputs(SIGNATURE_KEY);
-        for (String str : encoderInputs)
-            System.out.println("encoderInputs*****************" + str);
-        encoderInputsMap.put(encoderInputs[0], encoderInputBuffer.getBuffer());
-
-        Map<String, Object> encoderOutputsMap = new HashMap<>();
-        String[] encoderOutputs = mInterpreterEncoder.getSignatureOutputs(SIGNATURE_KEY);
-        for (String str : encoderOutputs)
-            System.out.println("encoderOutputs*****************" + str);
-        encoderOutputsMap.put(encoderOutputs[0], encoderOutputBuffer.getBuffer());
-
         // Run the encoder
-        //mInterpreterEncoder.runForMultipleInputsOutputs(encoderInputsMap, encoderOutputsMap);
-        mInterpreterEncoder.runSignature(encoderInputsMap, encoderOutputsMap, SIGNATURE_KEY);
+        Object[] inputs = {encoderInputBuffer.getBuffer()};
+        Map<Integer, Object> outputs = new HashMap<>();
+        outputs.put(0, encoderOutputBuffer.getBuffer());
+
+        mInterpreterEncoder.runForMultipleInputsOutputs(inputs, outputs);
 
         return encoderOutputBuffer.getBuffer();
     }
 
-    private String runDecoder(ByteBuffer inputBuffer, long inputLang, long action) {
+    private String runDecoder(ByteBuffer inputBuffer, int inputLang, int action) {
         // Initialize decoderInputIds to store the input ids for the decoder
-        long[][] decoderInputIds = new long[1][384];
+        int[][] decoderInputIds = new int[1][384];
 
         // Create a prefix array with start of transcript, input language, action, and not time stamps
-        long[] prefix = {mWhisperUtil.getTokenSOT(), inputLang, action, mWhisperUtil.getTokenNOT()};
+        int[] prefix = {mWhisperUtil.getTokenSOT(), inputLang, action, mWhisperUtil.getTokenNOT()};
         int prefixLen = prefix.length;
 
         // Copy prefix elements to decoderInputIds
@@ -230,20 +213,6 @@ public class WhisperEngineTwoModel implements IWhisperEngine {
         // Load the TFLite model and allocate tensors for the decoder
         mInterpreterDecoder.allocateTensors();
 
-        // Create input and output maps for the decoder
-        Map<String, Object> decoderInputsMap = new HashMap<>();
-        String[] decoderInputs = mInterpreterDecoder.getSignatureInputs(SIGNATURE_KEY);
-        for (String str : decoderInputs)
-            System.out.println("decoderInputs*****************" + str);
-        decoderInputsMap.put(decoderInputs[0], inputBuffer);
-        decoderInputsMap.put(decoderInputs[1], decoderInputIds);
-
-        Map<String, Object> decoderOutputsMap = new HashMap<>();
-        String[] decoderOutputs = mInterpreterDecoder.getSignatureOutputs(SIGNATURE_KEY);
-        for (String str : decoderOutputs)
-            System.out.println("decoderOutputs*****************" + str);
-        decoderOutputsMap.put(decoderOutputs[0], decoderOutputBuffer);
-
         StringBuilder result = new StringBuilder();
 
         int nextToken = -1;
@@ -252,7 +221,11 @@ public class WhisperEngineTwoModel implements IWhisperEngine {
             mInterpreterDecoder.resizeInput(1, new int[]{1, prefixLen});
 
             // Run the decoder for the next token
-            mInterpreterDecoder.runSignature(decoderInputsMap, decoderOutputsMap);
+            Object[] inputs = {inputBuffer, decoderInputIds};
+            Map<Integer, Object> outputs = new HashMap<>();
+            outputs.put(0, decoderOutputBuffer);
+
+            mInterpreterDecoder.runForMultipleInputsOutputs(inputs, outputs);
 
             // Process the output to get the next token
             nextToken = argmax(decoderOutputBuffer[0], prefixLen - 1);
@@ -271,12 +244,27 @@ public class WhisperEngineTwoModel implements IWhisperEngine {
             if(mIsInterrupted.get())
                 break;
         }
+        while (nextToken != mWhisperUtil.getTokenEOT()) {
+            try {
+                // Resize decoder input for the next token
+                mInterpreterDecoder.resizeInput(1, new int[]{1, prefixLen});
+                mInterpreterDecoder.allocateTensors();
 
-        //debug(decoderOutputBuffer[0]);
+                // Run the decoder for the next token
+                Object[] inputs = {inputBuffer, decoderInputIds};
+                Map<Integer, Object> outputs = new HashMap<>();
+                outputs.put(0, decoderOutputBuffer);
 
+                mInterpreterDecoder.runForMultipleInputsOutputs(inputs, outputs);
+
+                // ... (rest of the loop remains the same)
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "Error resizing input: " + e.getMessage());
+                break;
+            }
+        }
         return result.toString();
     }
-
     private int argmax(float[][] decoderOutputBuffer, int index) {
         int maxIndex = 0;
         for (int j = 0; j < decoderOutputBuffer[index].length; j++) {

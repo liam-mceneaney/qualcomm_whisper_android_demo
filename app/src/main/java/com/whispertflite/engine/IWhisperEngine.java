@@ -8,7 +8,10 @@ public interface IWhisperEngine {
     boolean isInitialized();
     void interrupt();
     void setUpdateListener(IWhisperListener listener);
-    boolean initialize(String modelPath, String vocabPath, boolean multilingual) throws IOException;
+    //boolean initialize(String modelPath, String vocabPath, boolean multilingual) throws IOException;
+
+    boolean initialize(String encoderPath, String decoderPath, String vocabPath, boolean multilingual) throws IOException;
+
     String transcribeFile(String wavePath);
     String transcribeBuffer(float[] samples);
 

@@ -4,6 +4,8 @@ import android.util.Log;
 
 import com.whispertflite.asr.IWhisperListener;
 
+import java.io.IOException;
+
 public class WhisperEngineNative implements IWhisperEngine {
     private final String TAG = "WhisperEngineNative";
     private final long nativePtr; // Native pointer to the TFLiteEngine instance
@@ -21,18 +23,23 @@ public class WhisperEngineNative implements IWhisperEngine {
     }
 
     @Override
+    public boolean initialize(String encoderPath, String decoderPath, String vocabPath, boolean multilingual) throws IOException {
+        return false;
+    }
+
+    @Override
     public boolean isInitialized() {
         return mIsInitialized;
     }
 
-    @Override
-    public boolean initialize(String modelPath, String vocabPath, boolean multilingual) {
-        int ret = loadModel(modelPath, multilingual);
-        Log.d(TAG, "Model is loaded..." + modelPath);
-
-        mIsInitialized = true;
-        return true;
-    }
+//    @Override
+//    public boolean initialize(String modelPath, String vocabPath, boolean multilingual) {
+//        int ret = loadModel(modelPath, multilingual);
+//        Log.d(TAG, "Model is loaded..." + modelPath);
+//
+//        mIsInitialized = true;
+//        return true;
+//    }
 
     @Override
     public String transcribeBuffer(float[] samples) {

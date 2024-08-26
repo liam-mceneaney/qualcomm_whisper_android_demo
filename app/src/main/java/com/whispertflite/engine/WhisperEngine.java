@@ -45,23 +45,28 @@ public class WhisperEngine implements IWhisperEngine {
     }
 
     @Override
-    public boolean initialize(String modelPath, String vocabPath, boolean multilingual) throws IOException {
-        // Load model
-        loadModel(modelPath);
-        Log.d(TAG, "Model is loaded..." + modelPath);
-
-        // Load filters and vocab
-        boolean ret = mWhisperUtil.loadFiltersAndVocab(multilingual, vocabPath);
-        if (ret) {
-            mIsInitialized = true;
-            Log.d(TAG, "Filters and Vocab are loaded..." + vocabPath);
-        } else {
-            mIsInitialized = false;
-            Log.d(TAG, "Failed to load Filters and Vocab...");
-        }
-
-        return mIsInitialized;
+    public boolean initialize(String encoderPath, String decoderPath, String vocabPath, boolean multilingual) throws IOException {
+        return false;
     }
+
+//    @Override
+//    public boolean initialize(String modelPath, String vocabPath, boolean multilingual) throws IOException {
+//        // Load model
+//        loadModel(modelPath);
+//        Log.d(TAG, "Model is loaded..." + modelPath);
+//
+//        // Load filters and vocab
+//        boolean ret = mWhisperUtil.loadFiltersAndVocab(multilingual, vocabPath);
+//        if (ret) {
+//            mIsInitialized = true;
+//            Log.d(TAG, "Filters and Vocab are loaded..." + vocabPath);
+//        } else {
+//            mIsInitialized = false;
+//            Log.d(TAG, "Failed to load Filters and Vocab...");
+//        }
+//
+//        return mIsInitialized;
+//    }
 
     @Override
     public String transcribeFile(String wavePath) {

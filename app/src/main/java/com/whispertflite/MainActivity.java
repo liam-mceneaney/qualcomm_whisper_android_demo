@@ -43,6 +43,9 @@ public class MainActivity extends AppCompatActivity {
 
     private Whisper mWhisper = null;
     private Recorder mRecorder = null;
+    private static final String ENCODER_FILE = "whisper-encoder-base.tflite";
+    private static final String DECODER_FILE = "whisper-decoder-base.tflite";
+    private static final String VOCAB_FILE = "filters_vocab_en.bin";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,21 +139,24 @@ public class MainActivity extends AppCompatActivity {
         copyAssetsWithExtensionsToDataFolder(this, extensionsToCopy);
 
 
-        String modelPath;
-        String vocabPath;
+        //String modelPath;
+        String encoderPath = getFilePath(ENCODER_FILE);
+        String decoderPath = getFilePath(DECODER_FILE);
+        String vocabPath = getFilePath(VOCAB_FILE);
         boolean useMultilingual = false; // TODO: change multilingual flag as per model used
-        if (useMultilingual) {
-            // Multilingual model and vocab
-            modelPath = getFilePath("whisper-tiny.tflite");
-            vocabPath = getFilePath("filters_vocab_multilingual.bin");
-        } else {
-            // English-only model and vocab
-            modelPath = getFilePath("whisper-tiny-en.tflite");
-            vocabPath = getFilePath("filters_vocab_en.bin");
-        }
+//        if (useMultilingual) {
+//            // Multilingual model and vocab
+//            //modelPath = getFilePath("whisper-tiny.tflite");
+//            //vocabPath = getFilePath("filters_vocab_multilingual.bin");
+//        } else {
+//            // English-only model and vocab
+//            decoderPath = getFilePath("whisper-decoder-base.tflite");
+//            encoderPath = getFilePath("whisper-encoder-base.tflite");
+//            vocabPath = getFilePath("filters_vocab_en.bin");
+//        }
 
         mWhisper = new Whisper(this);
-        mWhisper.loadModel(modelPath, vocabPath, useMultilingual);
+        mWhisper.loadModel(encoderPath,decoderPath, vocabPath, useMultilingual);
         mWhisper.setListener(new IWhisperListener() {
             @Override
             public void onUpdateReceived(String message) {
@@ -292,43 +298,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Test code for parallel processing
-    private void testParallelProcessing() {
-
-        // Define the file names in an array
-        String[] fileNames = {
-                "english_test1.wav",
-                "english_test2.wav",
-                "english_test_3_bili.wav"
-        };
-
-        // Multilingual model and vocab
-        String modelMultilingual = getFilePath("whisper-tiny.tflite");
-        String vocabMultilingual = getFilePath("filters_vocab_multilingual.bin");
-
-        // Perform task for multiple audio files using multilingual model
-        for (String fileName : fileNames) {
-            Whisper whisper = new Whisper(this);
-            whisper.setAction(Whisper.ACTION_TRANSCRIBE);
-            whisper.loadModel(modelMultilingual, vocabMultilingual, true);
-            //whisper.setListener((msgID, message) -> Log.d(TAG, message));
-            String waveFilePath = getFilePath(fileName);
-            whisper.setFilePath(waveFilePath);
-            whisper.start();
-        }
-
-        // English-only model and vocab
-        String modelEnglish = getFilePath("whisper-tiny-en.tflite");
-        String vocabEnglish = getFilePath("filters_vocab_en.bin");
-
-        // Perform task for multiple audio files using english only model
-        for (String fileName : fileNames) {
-            Whisper whisper = new Whisper(this);
-            whisper.setAction(Whisper.ACTION_TRANSCRIBE);
-            whisper.loadModel(modelEnglish, vocabEnglish, false);
-            //whisper.setListener((msgID, message) -> Log.d(TAG, message));
-            String waveFilePath = getFilePath(fileName);
-            whisper.setFilePath(waveFilePath);
-            whisper.start();
-        }
-    }
+//    private void testParallelProcessing() {
+//
+//        // Define the file names in an array
+//        String[] fileNames = {
+//                "english_test1.wav",
+//                "english_test2.wav",
+//                "english_test_3_bili.wav"
+//        };
+//
+//        // Multilingual model and vocab
+//        String modelMultilingual = getFilePath("whisper-tiny.tflite");
+//        String vocabMultilingual = getFilePath("filters_vocab_multilingual.bin");
+//
+//        // Perform task for multiple audio files using multilingual model
+//        for (String fileName : fileNames) {
+//            Whisper whisper = new Whisper(this);
+//            whisper.setAction(Whisper.ACTION_TRANSCRIBE);
+//            whisper.loadModel(modelMultilingual, vocabMultilingual, true);
+//            //whisper.setListener((msgID, message) -> Log.d(TAG, message));
+//            String waveFilePath = getFilePath(fileName);
+//            whisper.setFilePath(waveFilePath);
+//            whisper.start();
+//        }
+//
+//        // English-only model and vocab
+//        String modelEnglish = getFilePath("whisper-tiny-en.tflite");
+//        String vocabEnglish = getFilePath("filters_vocab_en.bin");
+//
+//        // Perform task for multiple audio files using english only model
+//        for (String fileName : fileNames) {
+//            Whisper whisper = new Whisper(this);
+//            whisper.setAction(Whisper.ACTION_TRANSCRIBE);
+//            whisper.loadModel(modelEnglish, vocabEnglish, false);
+//            //whisper.setListener((msgID, message) -> Log.d(TAG, message));
+//            String waveFilePath = getFilePath(fileName);
+//            whisper.setFilePath(waveFilePath);
+//            whisper.start();
+//        }
+//    }
 }
